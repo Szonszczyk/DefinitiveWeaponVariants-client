@@ -9,7 +9,7 @@ using SPT.Common.Http;
 
 namespace DefinitiveWeaponVariants.Client
 {
-    [BepInPlugin("com.szonszczyk.definitiveweaponvariants.client", "DefinitiveWeaponVariants.Client", "1.0.12")]
+    [BepInPlugin("com.szonszczyk.definitiveweaponvariants.client", "DefinitiveWeaponVariants.Client", "1.0.13")]
     [BepInDependency("com.SPT.core")]
     [BepInDependency("com.tyfon.uifixes", BepInDependency.DependencyFlags.SoftDependency)]
     public class Plugin : BaseUnityPlugin
@@ -47,7 +47,7 @@ namespace DefinitiveWeaponVariants.Client
             new ItemColorIconShaderPatch().Enable();
             new ItemColorGameObjectPoolPatch().Enable();
             new ItemColorAssetPoolPatch().Enable();
-            LogSource.LogInfo("DefinitiveWeaponVariants.Client 1.0.12 loaded (mod_core patches, firing/idle ring and static item colors).");
+            LogSource.LogInfo("DefinitiveWeaponVariants.Client 1.0.13 loaded (mod_core patches, firing/idle ring and static item colors).");
         }
 
         private IEnumerator Start()

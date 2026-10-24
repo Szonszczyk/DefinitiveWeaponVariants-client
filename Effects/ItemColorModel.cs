@@ -14,6 +14,7 @@ namespace DefinitiveWeaponVariants.Client.Effects
         private string _templateId;
         private readonly List<Surface> _surfaces = new List<Surface>();
         private readonly List<(LODGroup Group, LOD[] Original)> _lods = new List<(LODGroup, LOD[])>();
+        private bool _projectionValid;
         internal bool HasSurfaces => _surfaces.Count != 0;
 
         internal void Initialize(ItemColorEffect owner, string templateId)
@@ -73,20 +74,6 @@ namespace DefinitiveWeaponVariants.Client.Effects
             }
             if (!HasSurfaces) throw new InvalidOperationException("No supported opaque item surfaces were found.");
 
-            // Normalize across ALL selected surfaces in the item's own coordinate frame.
-            // Choosing its longest axis keeps a CPU's thin edge from compressing the gradient.
-            var bounds = new Bounds();
-            bool first = true;
-            foreach (var surface in _surfaces)
-                foreach (int index in surface.Used)
-                {
-                    var point = transform.InverseTransformPoint(surface.Source.transform.TransformPoint(surface.Vertices[index]));
-                    if (first) { bounds = new Bounds(point, Vector3.zero); first = false; }
-                    else bounds.Encapsulate(point);
-                }
-            int axis = bounds.size.x >= bounds.size.y && bounds.size.x >= bounds.size.z ? 0 : bounds.size.y >= bounds.size.z ? 1 : 2;
-            foreach (var surface in _surfaces) surface.SetGradient(transform, bounds, axis);
-
             // Put overlays into the same LOD entries as their source, including the first icon render.
             foreach (var group in GetComponentsInChildren<LODGroup>(true))
             {
@@ -105,6 +92,32 @@ namespace DefinitiveWeaponVariants.Client.Effects
         }
 
         private void LateUpdate() { if (_owner) Synchronize(); }
+        internal void PrepareCamera(Camera camera)
+        {
+            if (!_owner || !HasSurfaces || !gameObject.activeInHierarchy) return;
+            bool included = false;
+            foreach (var surface in _surfaces)
+                if (surface.Renderer && surface.Renderer.enabled &&
+                    (camera.cullingMask & (1 << surface.Renderer.gameObject.layer)) != 0) { included = true; break; }
+            if (!included) return;
+            try
+            {
+                // Called after the inspect/icon camera has positioned its model, including
+                // synchronous Camera.Render(). Each view needs its own vertical projection.
+                var viewProjection = camera.projectionMatrix * camera.worldToCameraMatrix;
+                bool changed = !_projectionValid;
+                foreach (var surface in _surfaces)
+                    changed |= surface.UpdateProjection(viewProjection);
+                if (!changed) return;
+
+                float minimum = float.PositiveInfinity, maximum = float.NegativeInfinity;
+                foreach (var surface in _surfaces) surface.Project(ref minimum, ref maximum);
+                foreach (var surface in _surfaces) surface.SetGradient(minimum, maximum);
+                _projectionValid = true;
+            }
+            catch (Exception e) { ClearSurfaces(); _owner.Failed(_templateId, e); }
+        }
+
         private void Synchronize()
         {
             foreach (var surface in _surfaces)
@@ -138,6 +151,7 @@ namespace DefinitiveWeaponVariants.Client.Effects
         private void OnDestroy() { Release(); }
         private void ClearSurfaces()
         {
+            _projectionValid = false;
             foreach (var lod in _lods) if (lod.Group) lod.Group.SetLODs(lod.Original);
             _lods.Clear();
             foreach (var surface in _surfaces) surface.Dispose();
@@ -152,11 +166,16 @@ namespace DefinitiveWeaponVariants.Client.Effects
             internal readonly HashSet<int> Used;
             private readonly Mesh _mesh;
             private readonly GameObject _object;
+            private readonly float[] _heights;
+            private readonly Vector2[] _uvs;
+            private Matrix4x4 _localToClip;
             internal Surface(Renderer source, RingMeshData data, List<int> triangles, Material material)
             {
                 Source = source;
                 Vertices = data.Vertices;
                 Used = new HashSet<int>(triangles);
+                _heights = new float[Vertices.Length];
+                _uvs = new Vector2[Vertices.Length];
                 _mesh = new Mesh { name = "DWV_ItemTint_Surface", hideFlags = HideFlags.DontSave,
                     indexFormat = Vertices.Length > 65535 ? IndexFormat.UInt32 : IndexFormat.UInt16 };
                 try
@@ -166,6 +185,7 @@ namespace DefinitiveWeaponVariants.Client.Effects
                     var colors = new Color32[Vertices.Length];
                     for (int i = 0; i < colors.Length; i++) colors[i] = new Color32(255, 255, 255, 255);
                     _mesh.colors32 = colors;
+                    _mesh.uv = _uvs;
                     _object = new GameObject("DWV_ItemTint_Surface") { hideFlags = HideFlags.DontSave, layer = source.gameObject.layer };
                     _object.transform.SetParent(source.transform, false);
                     _object.AddComponent<MeshFilter>().sharedMesh = _mesh;
@@ -179,16 +199,27 @@ namespace DefinitiveWeaponVariants.Client.Effects
                 }
                 catch { Dispose(); throw; }
             }
-            internal void SetGradient(Transform root, Bounds bounds, int axis)
+            internal bool UpdateProjection(Matrix4x4 viewProjection)
             {
-                var uvs = new Vector2[Vertices.Length];
-                float size = bounds.size[axis];
-                for (int i = 0; i < uvs.Length; i++)
+                var localToClip = viewProjection * Source.localToWorldMatrix;
+                bool changed = !_localToClip.Equals(localToClip);
+                _localToClip = localToClip;
+                return changed;
+            }
+            internal void Project(ref float minimum, ref float maximum)
+            {
+                foreach (int i in Used)
                 {
-                    var point = root.InverseTransformPoint(Source.transform.TransformPoint(Vertices[i]));
-                    uvs[i] = new Vector2(size > 0.000001f ? (point[axis] - bounds.min[axis]) / size : 0.5f, 0.5f);
+                    float height = _heights[i] = ItemGradientProjection.Height(Vertices[i], _localToClip);
+                    minimum = Math.Min(minimum, height);
+                    maximum = Math.Max(maximum, height);
                 }
-                _mesh.uv = uvs;
+            }
+            internal void SetGradient(float minimum, float maximum)
+            {
+                foreach (int i in Used)
+                    _uvs[i] = new Vector2(ItemGradientProjection.Coordinate(_heights[i], minimum, maximum), 0.5f);
+                _mesh.uv = _uvs;
             }
             public void Dispose()
             {

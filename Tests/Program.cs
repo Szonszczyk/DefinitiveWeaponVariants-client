@@ -79,6 +79,7 @@ internal static class Program
         foreach (var test in VariantColorsChecks.Cases) tests.Add(test.Key, test.Value);
         foreach (var test in IdleRingChecks.Cases) tests.Add(test.Key, test.Value);
         foreach (var test in ItemColorsChecks.Cases) tests.Add(test.Key, test.Value);
+        foreach (var test in ItemGradientChecks.Cases) tests.Add(test.Key, test.Value);
         int failures = 0;
         foreach (var test in tests)
         {

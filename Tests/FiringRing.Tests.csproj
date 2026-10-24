@@ -15,6 +15,7 @@
     <Compile Include="..\Networking\ItemColorsPayload.cs" Link="ItemColorsPayload.cs" />
     <Compile Include="..\Networking\ItemColorsLoader.cs" Link="ItemColorsLoader.cs" />
     <Compile Include="..\Effects\ItemPalette.cs" Link="ItemPalette.cs" />
+    <Compile Include="..\Effects\ItemGradientProjection.cs" Link="ItemGradientProjection.cs" />
     <Compile Include="..\Effects\RingProjection.cs" Link="RingProjection.cs" />
     <Reference Include="UnityEngine.CoreModule">
       <HintPath>$(SptRoot)\EscapeFromTarkov_Data\Managed\UnityEngine.CoreModule.dll</HintPath>

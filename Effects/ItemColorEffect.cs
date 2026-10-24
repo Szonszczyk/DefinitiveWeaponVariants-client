@@ -29,6 +29,7 @@ namespace DefinitiveWeaponVariants.Client.Effects
             _settings = settings;
             settings.Enabled.SettingChanged += SettingsChanged;
             settings.Opacity.SettingChanged += SettingsChanged;
+            Camera.onPreCull += PrepareCamera;
         }
 
         internal IEnumerator LoadColors(Func<string, Task<string>> getJson)
@@ -87,6 +88,11 @@ namespace DefinitiveWeaponVariants.Client.Effects
         }
 
         private void SettingsChanged(object sender, EventArgs args) { _dirty = true; }
+        private void PrepareCamera(Camera camera)
+        {
+            if (!camera || !IsEnabled || _models.Count == 0) return;
+            foreach (var model in _models) if (model) model.PrepareCamera(camera);
+        }
         private void LateUpdate() { if (_dirty) { _dirty = false; Refresh(); } }
         private void Refresh()
         {
@@ -96,6 +102,7 @@ namespace DefinitiveWeaponVariants.Client.Effects
 
         private void OnDestroy()
         {
+            Camera.onPreCull -= PrepareCamera;
             _ready.TrySetResult(false);
             if (_settings != null)
             {
