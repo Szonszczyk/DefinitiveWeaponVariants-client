@@ -16,5 +16,5 @@ Client part of [Definitive Weapon Variants](https://github.com/Szonszczyk/Defini
 
 ## Compatibility
 
-SPT Version: ~4.1.6
+SPT Version: ~4.1.6\
 Server mod: ~5.0.0

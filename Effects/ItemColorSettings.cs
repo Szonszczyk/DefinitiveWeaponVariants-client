@@ -14,7 +14,7 @@ namespace DefinitiveWeaponVariants.Client.Effects
             Enabled = config.Bind(section, "Enabled", true,
                 new ConfigDescription("Apply static server-provided colors to item inspect previews and newly generated miniatures. One color covers the whole item; two create a gradient." + CacheNotice,
                     null, new ConfigurationManagerAttributes { Order = 100 }));
-            Opacity = config.Bind(section, "Opacity", 0.3f,
+            Opacity = config.Bind(section, "Opacity", 0.5f,
                 new ConfigDescription("Tint strength, multiplied by the optional alpha channel in each server color. Does not make the item itself transparent." + CacheNotice,
                     new AcceptableValueRange<float>(0f, 1f), new ConfigurationManagerAttributes { Order = 90, ShowRangeAsPercent = true }));
         }
