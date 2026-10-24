@@ -1,0 +1,23 @@
+# Build output (including nested test projects)
+[Bb]in/
+[Oo]bj/
+TestResults/
+*.binlog
+
+# Local IDE state and per-user solution settings
+.vs/
+.idea/
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Internal research, extracted game code, and local dependency copies
+/notes/
+/reference/
+
+# Local agent instructions and workspace state
+/.agents/
+/.codex/
+/AGENTS.md
