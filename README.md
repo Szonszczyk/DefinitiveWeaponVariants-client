@@ -13,6 +13,7 @@ Client part of [Definitive Weapon Variants](https://github.com/Szonszczyk/Defini
 - UI Fixes compatibility
 - Adding a firing and idle animations for Weapon Variants
 - Coloring Weapon Cores and other DWV introduced items
+- Allowing adding pictures for slots - mostly mod_core
 
 ## Compatibility
 

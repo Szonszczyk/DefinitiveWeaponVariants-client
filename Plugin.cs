@@ -23,6 +23,7 @@ namespace DefinitiveWeaponVariants.Client
         private void Awake()
         {
             LogSource = Logger;
+            gameObject.AddComponent<Services.SlotImageService>();
             _uiFixesNotice = new UiFixesCompatibilityNotice(Config, Logger);
             _firingRing = gameObject.AddComponent<FiringRingEffect>();
             _firingRing.Initialize(new RingSettings(Config));
