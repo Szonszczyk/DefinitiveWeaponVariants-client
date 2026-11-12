@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "serverModVersion": "5.0.0",
+  "firerateAudioSync": {
+    "0123456789abcdef01234567": {
+      "sourceTemplateId": "5644bd2b4bdc2d3b4c8b4572",
+      "beforeFireRate": 650,
+      "afterFireRate": 900
+    }
+  }
+}

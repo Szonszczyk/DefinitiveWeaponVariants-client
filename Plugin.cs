@@ -1,4 +1,4 @@
-﻿using BepInEx;
+using BepInEx;
 using BepInEx.Logging;
 using System.Collections;
 using DefinitiveWeaponVariants.Client.Effects;
@@ -6,10 +6,13 @@ using DefinitiveWeaponVariants.Client.Networking;
 using DefinitiveWeaponVariants.Client.Patches;
 using DefinitiveWeaponVariants.Client.Compatibility;
 using SPT.Common.Http;
+using System;
+using DefinitiveWeaponVariants.Client.Audio;
+using SPT.Reflection.Patching;
 
 namespace DefinitiveWeaponVariants.Client
 {
-    [BepInPlugin("com.szonszczyk.definitiveweaponvariants.client", "DefinitiveWeaponVariants.Client", "1.0.13")]
+    [BepInPlugin("com.szonszczyk.definitiveweaponvariants.client", "DefinitiveWeaponVariants.Client", "1.0.16")]
     [BepInDependency("com.SPT.core")]
     [BepInDependency("com.tyfon.uifixes", BepInDependency.DependencyFlags.SoftDependency)]
     public class Plugin : BaseUnityPlugin
@@ -19,6 +22,8 @@ namespace DefinitiveWeaponVariants.Client
         private VariantColorsLoader _variantColorsLoader;
         private ItemColorEffect _itemColors;
         private UiFixesCompatibilityNotice _uiFixesNotice;
+        private FirerateAudioSync _firerateAudioSync;
+        private ModulePatch[] _firerateAudioPatches;
 
         private void Awake()
         {
@@ -48,12 +53,33 @@ namespace DefinitiveWeaponVariants.Client
             new ItemColorIconShaderPatch().Enable();
             new ItemColorGameObjectPoolPatch().Enable();
             new ItemColorAssetPoolPatch().Enable();
-            LogSource.LogInfo("DefinitiveWeaponVariants.Client 1.0.13 loaded (mod_core patches, firing/idle ring and static item colors).");
+            InitializeFirerateAudioSync();
+            LogSource.LogInfo("DefinitiveWeaponVariants.Client 1.0.16 loaded (mod_core patches, firing/idle ring, static item colors and FirerateAudioSync with cached stock PCM).");
+        }
+
+        private void InitializeFirerateAudioSync()
+        {
+            _firerateAudioPatches = new ModulePatch[] { new FirerateAudioSyncInitPatch(), new FirerateAudioSyncShotPatch(),
+                new FirerateAudioSyncDisablePatch(), new FirerateAudioSyncDestroyPatch() };
+            try
+            {
+                _firerateAudioSync = gameObject.AddComponent<FirerateAudioSync>();
+                _firerateAudioSync.Initialize(Config, Logger);
+                foreach (var patch in _firerateAudioPatches) patch.Enable();
+            }
+            catch (Exception error)
+            {
+                foreach (var patch in _firerateAudioPatches) patch.Disable();
+                if (_firerateAudioSync) Destroy(_firerateAudioSync);
+                _firerateAudioSync = null;
+                Logger.LogError("FirerateAudioSync unavailable; its patches were disabled. " + error);
+            }
         }
 
         private IEnumerator Start()
         {
             StartCoroutine(_uiFixesNotice.Run());
+            if (_firerateAudioSync) StartCoroutine(_firerateAudioSync.Load(path => RequestHandler.GetJsonAsync(path)));
             if (_variantColorsLoader != null) yield break;
             StartCoroutine(_itemColors.LoadColors(path => RequestHandler.GetJsonAsync(path)));
             _variantColorsLoader = new VariantColorsLoader(path => RequestHandler.GetJsonAsync(path));
@@ -76,6 +102,9 @@ namespace DefinitiveWeaponVariants.Client
         private void OnDestroy()
         {
             _uiFixesNotice?.Dispose();
+            if (_firerateAudioPatches != null)
+                foreach (var patch in _firerateAudioPatches) patch.Disable();
+            if (_firerateAudioSync) Destroy(_firerateAudioSync);
         }
     }
 }

@@ -3,7 +3,7 @@ using Newtonsoft.Json.Linq;
 
 namespace DefinitiveWeaponVariants.Client.Networking
 {
-    // Both server routes use RouterModelDWV metadata; only the data property differs.
+    // DWV data routes share RouterModelDWV metadata; the data property differs.
     internal static class ColorsPayloadEnvelope
     {
         internal static JObject Parse(string json, string endpoint, string dataProperty, out string serverModVersion)

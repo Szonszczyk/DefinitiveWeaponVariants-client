@@ -21,3 +21,11 @@ TestResults/
 /.agents/
 /.codex/
 /AGENTS.md
+
+# Local tests, inspection tools, and research records
+/Tests/
+/tools/
+/docs/Weapon-audio-*
+/docs/FirerateAudioSync-assets.md
+*.pdb
+*.zip

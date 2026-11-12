@@ -7,7 +7,7 @@
     <Authors>Szonszczyk</Authors>
     <Copyright>
     </Copyright>
-    <AssemblyVersion>1.0.13</AssemblyVersion>
+    <AssemblyVersion>1.0.16</AssemblyVersion>
     <FileVersion>$(AssemblyVersion)</FileVersion>
     <Configurations>Debug;Release;Package</Configurations>
     <Version>$(AssemblyVersion)</Version>
@@ -17,6 +17,7 @@
     <SptRoot Condition="'$(SptRoot)' == ''">C:\Games\SPT 4.1 - DEV</SptRoot>
     <DefaultItemExcludes>$(DefaultItemExcludes);reference\**</DefaultItemExcludes>
     <DeployToSpt Condition="'$(DeployToSpt)' == ''">true</DeployToSpt>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -127,9 +128,31 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Remove="Tests\**\*.cs" />
+    <Content Remove="Tests\**" />
+    <None Remove="Tests\**" />
+    <Reference Include="UnityEngine.AudioModule">
+      <HintPath>$(SptRoot)\EscapeFromTarkov_Data\Managed\UnityEngine.AudioModule.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <PackageReference Include="SoundTouch.Net" Version="2.3.2" GeneratePathProperty="true" />
+    <PackageReference Include="AssetsTools.NET" Version="3.0.5" />
+    <None Include="$(PkgSoundTouch_Net)\LICENSE\LICENSE" Link="SoundTouch.Net.LICENSE.txt" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="licenses\AssetsTools.NET.LICENSE.txt" Link="AssetsTools.NET.LICENSE.txt" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="LICENSE.txt" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
-  <Target Name="DeployPluginToSpt" AfterTargets="Build" Condition="'$(DeployToSpt)' == 'true'">
+  <!-- One manifest for both local deployment and the DWV server's distribution ZIP. -->
+  <Target Name="CollectClientDistributionFiles" DependsOnTargets="ResolveReferences">
+    <ItemGroup>
+      <ClientDistributionFiles Include="$(TargetPath);@(ReferenceCopyLocalPaths);$(TargetDir)SoundTouch.Net.LICENSE.txt;$(TargetDir)AssetsTools.NET.LICENSE.txt;$(TargetDir)LICENSE.txt" />
+    </ItemGroup>
+    <Error Condition="!Exists('%(ClientDistributionFiles.Identity)')" Text="Missing DWV client distribution file: %(ClientDistributionFiles.Identity)" />
+  </Target>
+  <Target Name="GetClientDistributionFiles" DependsOnTargets="Build;CollectClientDistributionFiles" Returns="@(ClientDistributionFiles)" />
+  <Target Name="DeployPluginToSpt" AfterTargets="Build" DependsOnTargets="CollectClientDistributionFiles" Condition="'$(DeployToSpt)' == 'true'">
     <Error Condition="!Exists('$(SptRoot)\BepInEx\plugins')" Text="SptRoot must point to an SPT installation containing BepInEx\plugins." />
-    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(SptRoot)\BepInEx\plugins" />
+    <Copy SourceFiles="@(ClientDistributionFiles)" DestinationFolder="$(SptRoot)\BepInEx\plugins\DefinitiveWeaponVariants" SkipUnchangedFiles="true" />
+    <!-- Migrate the old flat installation only after the new files copy successfully.
+         Leaving the old plugin DLL would register the same BepInEx GUID twice. -->
+    <Delete Files="$(SptRoot)\BepInEx\plugins\$(TargetFileName);$(SptRoot)\BepInEx\plugins\$(TargetName).pdb" />
   </Target>
 </Project>
